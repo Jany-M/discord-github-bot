@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+config.json
+.github_token
+*.log
+.DS_Store
+.vscode/
+.cursor/
+*-lock.json
+.idea/
+*.swp
+*.swo
+*~
+

@@ -1,0 +1,19 @@
+{
+  "discord": {
+    "channels": {
+      "default": "YOUR_DEFAULT_DISCORD_CHANNEL_ID",
+      "repositories": {
+        "owner/repo": "SPECIFIC_CHANNEL_ID_FOR_REPO"
+      }
+    }
+  },
+  "repositories": [
+    {
+      "name": "owner/repo",
+      "events": ["push", "pull_request", "issues", "release"],
+      "branches": ["main", "develop", "*"],
+      "channel": "OPTIONAL_CHANNEL_OVERRIDE"
+    }
+  ]
+}
+
