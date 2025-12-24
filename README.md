@@ -430,7 +430,4 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions for free
 2. Don't change `ENCRYPTION_KEY` after storing a token (you'll need to re-authenticate)
 3. If you need to reset, delete `.github_token` and re-run OAuth setup
 
-## License
-
-MIT
 
