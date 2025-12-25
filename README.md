@@ -2,7 +2,7 @@
 
 A Discord bot that listens to GitHub webhook events (commits, pull requests, issues, releases) and posts formatted notifications to Discord channels.
 
-![Alt text](https://i.postimg.cc/50Hj8zJD/preview.png "Discord Preview")
+![Alt text](https://i.postimg.cc/R0t0gHqW/preview.png "Discord Preview")
 
 
 ## What This App Does
