@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express';
 import session from 'express-session';
+import RedisStore from 'connect-redis';
+import { createClient } from 'redis';
 import crypto from 'crypto';
 import { getAuthorizationUrl, exchangeCodeForToken, storeToken, hasStoredToken } from '../github/oauth';
 import { logger } from '../utils/logger';
@@ -9,8 +11,52 @@ const router = express.Router();
 // Session configuration
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
-router.use(
-  session({
+// Initialize Redis client for session storage
+async function initializeSessionStore() {
+  try {
+    // Check if Redis URL is provided (Render provides REDIS_URL if Redis instance is configured)
+    const redisUrl = process.env.REDIS_URL;
+    
+    if (!redisUrl) {
+      logger.warn('REDIS_URL not set. Using in-memory session storage (not recommended for production with multiple instances)');
+      return createMemorySessionConfig();
+    }
+
+    const redisClient = createClient({ url: redisUrl });
+    
+    redisClient.on('error', (err: Error) => {
+      logger.error('Redis connection error:', err);
+    });
+
+    redisClient.on('connect', () => {
+      logger.info('Connected to Redis for session storage');
+    });
+
+    await redisClient.connect();
+
+    const store = new RedisStore({ client: redisClient });
+
+    return {
+      store,
+      secret: sessionSecret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 1000 * 60 * 15, // 15 minutes
+        sameSite: 'lax' as const, // Important for OAuth redirects
+      },
+    };
+  } catch (error) {
+    logger.error('Failed to initialize Redis store:', error);
+    logger.warn('Falling back to in-memory session storage');
+    return createMemorySessionConfig();
+  }
+}
+
+function createMemorySessionConfig() {
+  return {
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
@@ -18,12 +64,19 @@ router.use(
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       maxAge: 1000 * 60 * 15, // 15 minutes
+      sameSite: 'lax' as const, // Important for OAuth redirects
     },
-  })
-);
+  };
+}
+
+// Apply session middleware - will be initialized in index.ts
+export async function applySessionMiddleware(app: express.Application) {
+  const sessionConfig = await initializeSessionStore();
+  app.use(session(sessionConfig));
+}
 
 /**
- * Setup wizard page
+ * Setup wizard page - GET /setup
  */
 router.get('/setup', (req: Request, res: Response) => {
   if (hasStoredToken()) {

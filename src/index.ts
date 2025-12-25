@@ -4,7 +4,7 @@ import { initializeDiscordBot } from './discord/bot';
 import { initializeWebhooks, handleWebhook } from './github/webhook';
 import { loadConfig } from './config/config';
 import { hasStoredToken } from './github/oauth';
-import setupRouter from './auth/setup';
+import setupRouter, { applySessionMiddleware } from './auth/setup';
 import { logger } from './utils/logger';
 import { postCommit, postPullRequest, postIssue } from './utils/manual-events';
 
@@ -19,9 +19,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // JSON parser for most routes
 app.use(express.json());
-
-// Setup wizard routes
-app.use('/', setupRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -404,6 +401,13 @@ async function start() {
       logger.error('ENCRYPTION_KEY must be at least 32 characters long');
       process.exit(1);
     }
+
+    // Initialize session middleware (must be before routes)
+    logger.info('Initializing session storage...');
+    await applySessionMiddleware(app);
+
+    // Setup wizard routes (after session middleware)
+    app.use('/', setupRouter);
 
     // Load configuration
     try {
