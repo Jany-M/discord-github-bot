@@ -273,6 +273,12 @@ router.get('/auth/github/callback', async (req: Request, res: Response) => {
 
   // Verify state to prevent CSRF attacks
   if (!state || state !== sessionState) {
+    // Check if token already exists (duplicate callback request)
+    if (hasStoredToken()) {
+      logger.info('OAuth callback received but token already exists - likely duplicate request, redirecting to success');
+      return res.redirect('/setup?success=true');
+    }
+    
     logger.warn(`OAuth state mismatch - possible CSRF attack [Session ID: ${req.sessionID}]`);
     return res.status(400).send(`
       <!DOCTYPE html>
@@ -309,6 +315,12 @@ router.get('/auth/github/callback', async (req: Request, res: Response) => {
   delete (req.session as any).oauthState;
 
   if (!code || typeof code !== 'string') {
+    // If no code but token already exists, redirect to success (duplicate request)
+    if (hasStoredToken()) {
+      logger.info('OAuth callback received without code but token already exists - redirecting to success');
+      return res.redirect('/setup?success=true');
+    }
+    
     return res.status(400).send(`
       <!DOCTYPE html>
       <html>
@@ -338,6 +350,12 @@ router.get('/auth/github/callback', async (req: Request, res: Response) => {
         </body>
       </html>
     `);
+  }
+
+  // Check if token already exists (duplicate callback with same code)
+  if (hasStoredToken()) {
+    logger.info('OAuth callback received but token already exists - likely duplicate request, redirecting to success');
+    return res.redirect('/setup?success=true');
   }
 
   try {
