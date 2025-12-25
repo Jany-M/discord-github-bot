@@ -42,10 +42,10 @@ async function initializeSessionStore() {
       resave: false,
       saveUninitialized: true,
       cookie: {
-        secure: false, // Render handles HTTPS termination; set to false to allow cookies in OAuth redirect
+        secure: true, // Required for sameSite: 'none' to work with cross-site redirects
         httpOnly: true,
         maxAge: 1000 * 60 * 15, // 15 minutes
-        sameSite: 'none' as const, // Required for cross-site OAuth redirects
+        sameSite: 'none' as const, // Required for cross-site OAuth redirects (GitHub redirect)
       },
     };
   } catch (error) {
@@ -61,10 +61,10 @@ function createMemorySessionConfig() {
     resave: false,
     saveUninitialized: true,
     cookie: {
-      secure: false, // Render handles HTTPS termination; set to false to allow cookies in OAuth redirect
+      secure: true, // Required for sameSite: 'none' to work with cross-site redirects
       httpOnly: true,
       maxAge: 1000 * 60 * 15, // 15 minutes
-      sameSite: 'none' as const, // Required for cross-site OAuth redirects
+      sameSite: 'none' as const, // Required for cross-site OAuth redirects (GitHub redirect)
     },
   };
 }
