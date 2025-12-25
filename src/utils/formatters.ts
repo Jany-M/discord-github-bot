@@ -82,6 +82,12 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
   // Second row: Stats fields
   if (statsFields.length > 0) {
     fields.push(...statsFields);
+    // Add empty placeholder to align with row above (3 fields per row)
+    fields.push({
+      name: '\u200b',
+      value: '\u200b',
+      inline: true,
+    });
   } else {
     // If no stats, show commit count
     fields.push({
