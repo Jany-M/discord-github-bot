@@ -22,7 +22,7 @@ export async function postCommit(
   commitSha: string
 ): Promise<void> {
   try {
-    const octokit = getAuthenticatedOctokit();
+    const octokit = await getAuthenticatedOctokit();
     const repoName = `${owner}/${repo}`;
 
     logger.info(`Fetching commit ${commitSha} from ${repoName}`);
@@ -258,7 +258,7 @@ export async function postPullRequest(
   prNumber: number
 ): Promise<void> {
   try {
-    const octokit = getAuthenticatedOctokit();
+    const octokit = await getAuthenticatedOctokit();
     const repoName = `${owner}/${repo}`;
 
     logger.info(`Fetching PR #${prNumber} from ${repoName}`);
@@ -338,7 +338,7 @@ export async function postIssue(
   issueNumber: number
 ): Promise<void> {
   try {
-    const octokit = getAuthenticatedOctokit();
+    const octokit = await getAuthenticatedOctokit();
     const repoName = `${owner}/${repo}`;
 
     logger.info(`Fetching issue #${issueNumber} from ${repoName}`);

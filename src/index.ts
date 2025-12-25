@@ -3,10 +3,11 @@ import dotenv from 'dotenv';
 import { initializeDiscordBot } from './discord/bot';
 import { initializeWebhooks, handleWebhook } from './github/webhook';
 import { loadConfig } from './config/config';
-import { hasStoredToken } from './github/oauth';
+import { hasStoredToken, getStoredToken } from './github/oauth';
 import setupRouter, { applySessionMiddleware } from './auth/setup';
 import { logger } from './utils/logger';
 import { postCommit, postPullRequest, postIssue } from './utils/manual-events';
+import { initializeRedisClient } from './utils/redis';
 
 // Load environment variables
 dotenv.config();
@@ -403,6 +404,20 @@ async function start() {
     if (process.env.ENCRYPTION_KEY && process.env.ENCRYPTION_KEY.length < 32) {
       logger.error('ENCRYPTION_KEY must be at least 32 characters long');
       process.exit(1);
+    }
+
+    // Initialize Redis for persistent token storage
+    logger.info('Initializing Redis...');
+    await initializeRedisClient();
+
+    // Load stored GitHub token from Redis if available
+    try {
+      const token = await getStoredToken();
+      if (token) {
+        logger.info('GitHub token loaded from persistent storage');
+      }
+    } catch (error) {
+      logger.warn('Could not load GitHub token:', error);
     }
 
     // Initialize session middleware (must be before routes)

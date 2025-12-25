@@ -345,7 +345,7 @@ router.get('/auth/github/callback', async (req: Request, res: Response) => {
     const token = await exchangeCodeForToken(code);
     
     // Store the token
-    storeToken(token);
+    await storeToken(token);
 
     logger.info('GitHub OAuth completed successfully');
 
