@@ -40,7 +40,7 @@ async function initializeSessionStore() {
       store,
       secret: sessionSecret,
       resave: false,
-      saveUninitialized: false,
+      saveUninitialized: true,
       cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
@@ -59,7 +59,7 @@ function createMemorySessionConfig() {
   return {
     secret: sessionSecret,
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
@@ -219,7 +219,15 @@ router.get('/auth/github', (req: Request, res: Response) => {
   try {
     const authUrl = getAuthorizationUrl(state);
     logger.info('Redirecting to GitHub OAuth');
-    res.redirect(authUrl);
+    // Save session before redirecting to ensure state is persisted
+    req.session.save((err) => {
+      if (err) {
+        logger.error('Failed to save session:', err);
+        res.status(500).send('Failed to save session');
+      } else {
+        res.redirect(authUrl);
+      }
+    });
   } catch (error) {
     logger.error('Failed to generate authorization URL:', error);
     res.status(500).send(`
