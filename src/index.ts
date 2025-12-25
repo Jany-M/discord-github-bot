@@ -21,12 +21,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: express.Request, res: express.Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Get configured repositories
-app.get('/api/repositories', (req, res) => {
+app.get('/api/repositories', (req: express.Request, res: express.Response) => {
   try {
     const config = loadConfig();
     const repositories = config.repositories.map(repo => repo.name);
@@ -38,7 +38,7 @@ app.get('/api/repositories', (req, res) => {
 });
 
 // Manual event posting endpoints
-app.get('/manual', (req, res) => {
+app.get('/manual', (req: express.Request, res: express.Response) => {
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -302,7 +302,7 @@ app.get('/manual', (req, res) => {
 });
 
 // API endpoints for manual event posting
-app.post('/api/manual/commit/:owner/:repo/:sha', async (req, res) => {
+app.post('/api/manual/commit/:owner/:repo/:sha', async (req: express.Request, res: express.Response) => {
   try {
     const { owner, repo, sha } = req.params;
     await postCommit(owner, repo, sha);
@@ -314,7 +314,7 @@ app.post('/api/manual/commit/:owner/:repo/:sha', async (req, res) => {
   }
 });
 
-app.post('/api/manual/pr/:owner/:repo/:number', async (req, res) => {
+app.post('/api/manual/pr/:owner/:repo/:number', async (req: express.Request, res: express.Response) => {
   try {
     const { owner, repo, number } = req.params;
     await postPullRequest(owner, repo, parseInt(number));
@@ -326,7 +326,7 @@ app.post('/api/manual/pr/:owner/:repo/:number', async (req, res) => {
   }
 });
 
-app.post('/api/manual/issue/:owner/:repo/:number', async (req, res) => {
+app.post('/api/manual/issue/:owner/:repo/:number', async (req: express.Request, res: express.Response) => {
   try {
     const { owner, repo, number } = req.params;
     await postIssue(owner, repo, parseInt(number));
@@ -339,7 +339,7 @@ app.post('/api/manual/issue/:owner/:repo/:number', async (req, res) => {
 });
 
 // GitHub webhook endpoint (needs raw body for signature verification)
-app.post('/webhook/github', express.raw({ type: 'application/json' }), async (req, res) => {
+app.post('/webhook/github', express.raw({ type: 'application/json' }), async (req: express.Request, res: express.Response) => {
   try {
     const signature = req.headers['x-hub-signature-256'] as string;
     const event = req.headers['x-github-event'] as string;
