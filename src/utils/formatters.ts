@@ -21,7 +21,7 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
     // Add additions field with green indicator
     if (stats.additions > 0) {
       statsFields.push({
-        name: '➕ Added',
+        name: '✅ Lines Added',
         value: `\`+${stats.additions}\``,
         inline: true,
       });
@@ -30,7 +30,7 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
     // Add deletions field with red indicator
     if (stats.deletions > 0) {
       statsFields.push({
-        name: '➖ Removed',
+        name: '❌ Lines Removed',
         value: `\`-${stats.deletions}\``,
         inline: true,
       });
