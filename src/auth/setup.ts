@@ -220,17 +220,9 @@ router.get('/auth/github', (req: Request, res: Response) => {
 
   try {
     const authUrl = getAuthorizationUrl(state);
-    logger.info('Redirecting to GitHub OAuth');
-    // Save session before redirecting to ensure state is persisted
-    req.session.save((err) => {
-      if (err) {
-        logger.error('Failed to save session:', err);
-        res.status(500).send('Failed to save session');
-      } else {
-        logger.info(`Session saved [ID: ${req.sessionID}], redirecting to GitHub`);
-        res.redirect(authUrl);
-      }
-    });
+    logger.info(`Redirecting to GitHub OAuth [Session ID: ${req.sessionID}]`);
+    // Just redirect - Express-session will automatically send the Set-Cookie header
+    res.redirect(authUrl);
   } catch (error) {
     logger.error('Failed to generate authorization URL:', error);
     res.status(500).send(`
