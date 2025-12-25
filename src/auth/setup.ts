@@ -215,6 +215,8 @@ router.get('/auth/github', (req: Request, res: Response) => {
   // Generate state for CSRF protection
   const state = crypto.randomBytes(32).toString('hex');
   (req.session as any).oauthState = state;
+  
+  logger.info(`Setting OAuth state in session [ID: ${req.sessionID}]: ${state.substring(0, 8)}...`);
 
   try {
     const authUrl = getAuthorizationUrl(state);
@@ -225,6 +227,7 @@ router.get('/auth/github', (req: Request, res: Response) => {
         logger.error('Failed to save session:', err);
         res.status(500).send('Failed to save session');
       } else {
+        logger.info(`Session saved [ID: ${req.sessionID}], redirecting to GitHub`);
         res.redirect(authUrl);
       }
     });
@@ -274,9 +277,11 @@ router.get('/auth/github/callback', async (req: Request, res: Response) => {
   const { code, state } = req.query;
   const sessionState = (req.session as any)?.oauthState;
 
+  logger.info(`OAuth callback [ID: ${req.sessionID}] - State from URL: ${state?.toString().substring(0, 8)}..., State in session: ${sessionState?.substring(0, 8) || 'MISSING'}...`);
+
   // Verify state to prevent CSRF attacks
   if (!state || state !== sessionState) {
-    logger.warn('OAuth state mismatch - possible CSRF attack');
+    logger.warn(`OAuth state mismatch - possible CSRF attack [Session ID: ${req.sessionID}]`);
     return res.status(400).send(`
       <!DOCTYPE html>
       <html>
