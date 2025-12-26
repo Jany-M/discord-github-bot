@@ -66,9 +66,156 @@ app.use(express.urlencoded({ extended: true }));
 // JSON parser for most routes
 app.use(express.json());
 
-// Root route - redirect to setup
-app.get('/', (req: express.Request, res: express.Response) => {
-  res.redirect('/setup');
+// Root route - show landing page if setup is done, otherwise redirect to setup
+app.get('/', async (req: express.Request, res: express.Response) => {
+  const isSetupComplete = await hasStoredToken();
+  
+  if (!isSetupComplete) {
+    return res.redirect('/setup');
+  }
+
+  // Setup is complete - show landing page with README info
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Discord GitHub Bot</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+          }
+          .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+          }
+          h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+          }
+          .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+          }
+          .github-link {
+            display: inline-block;
+            background: #24292e;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-bottom: 30px;
+            transition: background 0.3s;
+          }
+          .github-link:hover {
+            background: #2f363d;
+          }
+          .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+          }
+          .feature {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+          }
+          .feature h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+          }
+          .endpoints {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+          }
+          .endpoints h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+          }
+          .endpoint-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            margin: 5px 10px 5px 0;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            transition: background 0.3s;
+          }
+          .endpoint-link:hover {
+            background: #e0e0e0;
+          }
+          .status {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <span class="status">✓ Setup Complete</span>
+          <h1>Discord GitHub Bot</h1>
+          <p class="subtitle">A Discord bot that listens to GitHub webhook events and posts formatted notifications to Discord channels.</p>
+          
+          <a href="https://github.com/Jany-M/discord-github-bot" class="github-link" target="_blank">
+            📦 View on GitHub
+          </a>
+          
+          <div class="features">
+            <div class="feature">
+              <h3>🔔 Real-time Notifications</h3>
+              <p>Get instant notifications for commits, pull requests, issues, and releases.</p>
+            </div>
+            <div class="feature">
+              <h3>🎨 Beautiful Embeds</h3>
+              <p>Rich Discord embeds with formatting and metadata.</p>
+            </div>
+            <div class="feature">
+              <h3>🔒 Secure</h3>
+              <p>OAuth-based authentication with encrypted token storage.</p>
+            </div>
+            <div class="feature">
+              <h3>⚙️ Flexible</h3>
+              <p>Filter by repository, branch, and event type with channel routing.</p>
+            </div>
+          </div>
+          
+          <div class="endpoints">
+            <h2>Available Endpoints</h2>
+            <a href="/setup" class="endpoint-link">Setup Wizard</a>
+            <a href="/health" class="endpoint-link">Health Check</a>
+            <a href="/manual" class="endpoint-link">Manual Events</a>
+            <a href="/api/repositories" class="endpoint-link">API: Repositories</a>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
 // Health check endpoint
