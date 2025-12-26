@@ -178,9 +178,13 @@ app.get('/', async (req: express.Request, res: express.Response) => {
       </head>
       <body>
         <div class="container">
-          <span class="status">✓ Setup Complete</span>
+          <span class="status">✅ Setup Complete</span>
           <h1>Discord GitHub Bot</h1>
           <p class="subtitle">A Discord bot that listens to GitHub webhook events and posts formatted notifications to Discord channels.</p>
+
+          <h4><a href="https://github.com/Jany-M/" class="github-link" target="_blank">
+            👩🏻‍💻 Author
+          </a></a>
           
           <a href="https://github.com/Jany-M/discord-github-bot" class="github-link" target="_blank">
             📦 View on GitHub
