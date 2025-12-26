@@ -66,6 +66,11 @@ app.use(express.urlencoded({ extended: true }));
 // JSON parser for most routes
 app.use(express.json());
 
+// Root route - redirect to setup
+app.get('/', (req: express.Request, res: express.Response) => {
+  res.redirect('/setup');
+});
+
 // Health check endpoint
 app.get('/health', (req: express.Request, res: express.Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
