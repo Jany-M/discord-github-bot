@@ -18,6 +18,48 @@ const PORT = process.env.PORT || 3000;
 // Trust proxy - required for HTTPS detection through reverse proxies (e.g., Render's proxy)
 app.set('trust proxy', 1);
 
+// GitHub webhook endpoint (needs raw body for signature verification)
+// MUST be before express.json() middleware to get raw body
+app.post('/webhook/github', express.raw({ 
+  type: 'application/json',
+  limit: '10mb' // Increase limit for large webhook payloads
+}), async (req: express.Request, res: express.Response) => {
+  try {
+    const signature = req.headers['x-hub-signature-256'] as string;
+    const event = req.headers['x-github-event'] as string;
+    const deliveryId = req.headers['x-github-delivery'] as string;
+
+    if (!signature || !event || !deliveryId) {
+      logger.warn('Missing required webhook headers');
+      return res.status(400).json({ error: 'Missing required headers' });
+    }
+
+    logger.debug(`Received webhook: ${event} (${deliveryId})`);
+
+    // Get raw body as string for signature verification
+    const rawBody = (req.body as Buffer).toString('utf8');
+    // Parse JSON payload
+    const payload = JSON.parse(rawBody);
+
+    // Handle the webhook (pass raw body for signature verification)
+    await handleWebhook(deliveryId, event, payload, signature, rawBody);
+
+    res.status(200).json({ received: true });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error('Webhook processing error:', {
+      message: errorMessage,
+      stack: errorStack,
+      error: error
+    });
+    res.status(500).json({ 
+      error: 'Webhook processing failed',
+      message: errorMessage
+    });
+  }
+});
+
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 
@@ -342,44 +384,6 @@ app.post('/api/manual/issue/:owner/:repo/:number', async (req: express.Request, 
   }
 });
 
-// GitHub webhook endpoint (needs raw body for signature verification)
-app.post('/webhook/github', express.raw({ type: 'application/json' }), async (req: express.Request, res: express.Response) => {
-  try {
-    const signature = req.headers['x-hub-signature-256'] as string;
-    const event = req.headers['x-github-event'] as string;
-    const deliveryId = req.headers['x-github-delivery'] as string;
-
-    if (!signature || !event || !deliveryId) {
-      logger.warn('Missing required webhook headers');
-      return res.status(400).json({ error: 'Missing required headers' });
-    }
-
-    logger.debug(`Received webhook: ${event} (${deliveryId})`);
-
-    // Get raw body as string for signature verification
-    const rawBody = (req.body as Buffer).toString('utf8');
-    // Parse JSON payload
-    const payload = JSON.parse(rawBody);
-
-    // Handle the webhook (pass raw body for signature verification)
-    await handleWebhook(deliveryId, event, payload, signature, rawBody);
-
-    res.status(200).json({ received: true });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    logger.error('Webhook processing error:', {
-      message: errorMessage,
-      stack: errorStack,
-      error: error
-    });
-    res.status(500).json({ 
-      error: 'Webhook processing failed',
-      message: errorMessage
-    });
-  }
-});
-
 // Start server
 async function start() {
   try {
@@ -436,7 +440,7 @@ async function start() {
     }
 
     // Check if GitHub token is configured
-    if (!hasStoredToken()) {
+    if (!(await hasStoredToken())) {
       logger.warn('GitHub token not configured. Visit /setup to complete the OAuth flow.');
     }
 
@@ -449,13 +453,13 @@ async function start() {
     initializeWebhooks(process.env.GITHUB_WEBHOOK_SECRET!);
 
     // Start Express server
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
       logger.info(`Server running on port ${PORT}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
       logger.info(`Setup wizard: http://localhost:${PORT}/setup`);
       logger.info(`Webhook endpoint: http://localhost:${PORT}/webhook/github`);
       
-      if (!hasStoredToken()) {
+      if (!(await hasStoredToken())) {
         logger.info('');
         logger.info('⚠️  GitHub token not configured!');
         logger.info(`   Visit http://localhost:${PORT}/setup to complete setup`);
