@@ -129,9 +129,19 @@ app.get('/', async (req: express.Request, res: express.Response) => {
           }
           .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             margin: 30px 0;
+          }
+          @media (max-width: 900px) {
+            .features {
+              grid-template-columns: repeat(2, 1fr);
+            }
+          }
+          @media (max-width: 600px) {
+            .features {
+              grid-template-columns: 1fr;
+            }
           }
           .feature {
             background: #f8f9fa;
@@ -151,6 +161,40 @@ app.get('/', async (req: express.Request, res: express.Response) => {
           .endpoints h2 {
             color: #667eea;
             margin-bottom: 15px;
+          }
+          .setup-guide {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+          }
+          .setup-guide h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+          }
+          .setup-guide ol {
+            margin-left: 20px;
+          }
+          .setup-guide li {
+            margin: 10px 0;
+            line-height: 1.6;
+          }
+          .setup-guide code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+          }
+          .setup-guide a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+          }
+          .setup-guide a:hover {
+            text-decoration: underline;
           }
           .endpoint-link {
             display: inline-block;
@@ -215,6 +259,21 @@ app.get('/', async (req: express.Request, res: express.Response) => {
             <a href="/health" class="endpoint-link">Health Check</a>
             <a href="/manual" class="endpoint-link">Manual Events</a>
             <a href="/api/repositories" class="endpoint-link">API: Repositories</a>
+            
+            <div class="setup-guide">
+              <h3>🚀 Quick Setup Guide</h3>
+              <ol>
+                <li><strong>Fork & Clone:</strong> Fork the <a href="https://github.com/Jany-M/discord-github-bot" target="_blank">repository</a> to your GitHub account, then clone and run <code>npm install</code></li>
+                <li><strong>Environment Variables:</strong> Copy <code>.env.example</code> to <code>.env</code> and fill in required values</li>
+                <li><strong>Discord Bot:</strong> Create a bot at <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a> and get your bot token</li>
+                <li><strong>GitHub OAuth App:</strong> Create an OAuth App in <a href="https://github.com/settings/developers" target="_blank">GitHub Settings</a> for authentication</li>
+                <li><strong>Generate Secrets:</strong> Run <code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code> for encryption keys</li>
+                <li><strong>Local Testing:</strong> Use <a href="https://ngrok.com" target="_blank">ngrok</a> to expose your local server for webhook testing</li>
+                <li><strong>Deploy:</strong> Deploy to <a href="https://render.com" target="_blank">Render</a> or any cloud service (remember to set up Redis for session storage)</li>
+                <li><strong>Configure Webhooks:</strong> Add webhook URL (<code>YOUR_URL/webhook/github</code>) to your GitHub repository settings</li>
+              </ol>
+              <p style="margin-top: 15px;"><strong>📖 Full documentation:</strong> <a href="https://github.com/Jany-M/discord-github-bot#readme" target="_blank">View README on GitHub</a></p>
+            </div>
           </div>
         </div>
       </body>
