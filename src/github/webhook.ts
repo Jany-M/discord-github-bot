@@ -33,6 +33,12 @@ async function handlePushEvent(payload: GitHubPushEvent): Promise<void> {
     const repoName = payload.repository.full_name;
     const branch = payload.ref.replace('refs/heads/', '');
 
+    // Skip empty pushes (e.g., branch creation/deletion without commits)
+    if (!payload.commits || payload.commits.length === 0) {
+      logger.debug(`Skipping push event for ${repoName} on ${branch} (0 commits in payload)`);
+      return;
+    }
+
     logger.debug(`Received push event for ${repoName} on branch ${branch}`);
 
     if (!shouldHandleEvent(repoName, 'push', branch)) {
