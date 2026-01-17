@@ -6,8 +6,10 @@ import {
   GitHubReleaseEvent,
 } from '../types';
 
-function repoPrivacyIcon(repo: { private?: boolean }): string {
-  return repo.private ? '🔒' : '🔓';
+function repoPrivacyIcon(repo: { private: boolean }): string {
+  // GitHub webhook payloads always include the 'private' boolean field
+  // true = private repository (🔒), false = public repository (🔓)
+  return repo.private === true ? '🔒' : '🔓';
 }
 
 function getPushStats(commits: GitHubPushEvent['commits'], headCommit: GitHubPushEvent['head_commit']) {
