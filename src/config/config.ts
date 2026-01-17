@@ -131,6 +131,24 @@ export function shouldHandleEvent(
 
   // Check branch filter if branch is provided
   if (branch) {
+    // Check if branch is excluded
+    if (repoConfig.excludeBranches) {
+      const isExcluded = repoConfig.excludeBranches.some(b => {
+        if (b === '*') return true;
+        // Support wildcard patterns like "release/*"
+        if (b.includes('*')) {
+          const pattern = b.replace(/\*/g, '.*');
+          const regex = new RegExp(`^${pattern}$`);
+          return regex.test(branch);
+        }
+        return b === branch;
+      });
+
+      if (isExcluded) {
+        return false;
+      }
+    }
+
     const branchMatches = repoConfig.branches.some(b => {
       if (b === '*') return true;
       // Support wildcard patterns like "feature/*"

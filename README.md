@@ -176,6 +176,21 @@ I am using a Free plan on [render.com](https://render.com), you can use any clou
    - `SESSION_SECRET`
    - `NODE_ENV=production`
 
+**Add config.json as Secret File**
+
+⚠️ **Important:** Since `config.json` is not committed to your repository (it contains sensitive channel IDs), you need to add it as a secret file in Render:
+
+1. In your Render Dashboard, go to your Web Service
+2. Click the **Environment** tab
+3. Scroll down to **Secret Files** section
+4. Click **Add Secret File**
+5. Set the following:
+   - **Key**: `config.json`
+   - **Value**: Copy and paste the contents of your local `config.json` file
+6. Click **Save Changes**
+
+Render will automatically place this file in your application's working directory during deployment. The app's code already looks for `config.json` in the root directory, so this secret file will be available to the application.
+
 **Keep Service Awake** (Prevent Free Tier Sleep)
 
 The free tier on Render.com sleeps after 15 minutes of inactivity. To keep it running:

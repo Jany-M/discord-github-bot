@@ -12,6 +12,7 @@
       "name": "owner/repo",
       "events": ["push", "pull_request", "issues", "release"],
       "branches": ["main", "develop", "*"],
+      "excludeBranches": ["latest"],
       "channel": "OPTIONAL_CHANNEL_OVERRIDE"
     }
   ]

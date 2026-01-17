@@ -63,7 +63,8 @@ export async function postCommit(
       
       // Filter branches to only those matching the config patterns
       let branchesToCheck = allGitHubBranches.filter((gitBranch) => {
-        return repoConfig!.branches.some((pattern) => {
+        // Check if branch matches configured patterns
+        const matchesPattern = repoConfig!.branches.some((pattern) => {
           // Handle wildcard patterns like "release/*"
           if (pattern.endsWith('*')) {
             const prefix = pattern.slice(0, -1);
@@ -72,6 +73,29 @@ export async function postCommit(
           // Exact match
           return gitBranch.name === pattern;
         });
+
+        if (!matchesPattern) {
+          return false;
+        }
+
+        // Check if branch is excluded
+        if (repoConfig!.excludeBranches && repoConfig!.excludeBranches.length > 0) {
+          const isExcluded = repoConfig!.excludeBranches.some((pattern) => {
+            // Handle wildcard patterns like "release/*"
+            if (pattern.endsWith('*')) {
+              const prefix = pattern.slice(0, -1);
+              return gitBranch.name.startsWith(prefix);
+            }
+            // Exact match
+            return gitBranch.name === pattern;
+          });
+          if (isExcluded) {
+            logger.debug(`[Branch Detection] Excluding branch: ${gitBranch.name}`);
+            return false;
+          }
+        }
+
+        return true;
       });
       
       // Sort by most recently updated (DESC) and take only the 5 most active

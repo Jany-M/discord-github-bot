@@ -649,9 +649,13 @@ async function start() {
     // Load configuration
     try {
       loadConfig();
+      logger.info('✅ config.json loaded successfully');
     } catch (error) {
-      logger.warn('Configuration file not found or invalid:', error);
-      logger.info('The bot will still start, but you need to configure it before it can process events');
+      logger.warn('⚠️  Configuration file not found or invalid:', error);
+      logger.info('   The bot will still start, but you need to configure it before it can process events');
+      logger.info('   📖 Setup Instructions:');
+      logger.info('      - Local: Copy config.example.json to config.json and edit with your settings');
+      logger.info('      - Render.com: Add config.json as a Secret File in your service Environment tab');
     }
 
     // Check if GitHub token is configured

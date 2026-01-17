@@ -12,6 +12,7 @@ export interface RepositoryConfig {
   name: string;
   events: GitHubEventType[];
   branches: string[]; // Use "*" for all branches
+  excludeBranches?: string[]; // Optional branches to exclude
   channel?: string; // Optional override for this repo
 }
 
