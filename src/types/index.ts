@@ -27,6 +27,7 @@ export interface GitHubPushEvent {
       login: string;
       avatar_url: string;
     };
+    private?: boolean;
   };
   commits: Array<{
     id: string;
@@ -61,6 +62,10 @@ export interface GitHubPushEvent {
   pusher: {
     name: string;
   };
+  sender?: {
+    login: string;
+    avatar_url: string;
+  };
 }
 
 export interface GitHubPullRequestEvent {
@@ -94,6 +99,7 @@ export interface GitHubPullRequestEvent {
       login: string;
       avatar_url: string;
     };
+    private?: boolean;
   };
 }
 
@@ -118,6 +124,7 @@ export interface GitHubIssueEvent {
       login: string;
       avatar_url: string;
     };
+    private?: boolean;
   };
 }
 
@@ -142,6 +149,7 @@ export interface GitHubReleaseEvent {
       login: string;
       avatar_url: string;
     };
+    private?: boolean;
   };
 }
 

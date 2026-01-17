@@ -6,6 +6,32 @@ import {
   GitHubReleaseEvent,
 } from '../types';
 
+function repoPrivacyIcon(repo: { private?: boolean }): string {
+  return repo.private ? '🔒' : '🔓';
+}
+
+function getPushStats(commits: GitHubPushEvent['commits'], headCommit: GitHubPushEvent['head_commit']) {
+  let additions = 0;
+  let deletions = 0;
+  let counted = false;
+
+  for (const commit of commits) {
+    if (commit.stats) {
+      additions += commit.stats.additions || 0;
+      deletions += commit.stats.deletions || 0;
+      counted = true;
+    }
+  }
+
+  if (!counted && headCommit?.stats) {
+    additions = headCommit.stats.additions || 0;
+    deletions = headCommit.stats.deletions || 0;
+    counted = true;
+  }
+
+  return counted ? { additions, deletions } : null;
+}
+
 /**
  * Formats a push event into a Discord embed
  */
@@ -13,44 +39,31 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
   const branch = event.ref.replace('refs/heads/', '');
   const commitCount = event.commits.length;
   const latestCommit = event.head_commit;
-  const stats = latestCommit.stats || event.commits[0]?.stats;
+  const stats = getPushStats(event.commits, latestCommit);
+  const thumbnail = event.sender?.avatar_url || event.repository.owner.avatar_url;
 
   // Build stats fields with color indicators
   const statsFields: Array<{ name: string; value: string; inline: boolean }> = [];
   if (stats) {
-    // Add additions field with green indicator
-    if (stats.additions > 0) {
-      statsFields.push({
-        name: '✅ Lines Added',
-        value: `\`+${stats.additions}\``,
-        inline: true,
-      });
-    }
-    
-    // Add deletions field with red indicator
-    if (stats.deletions > 0) {
-      statsFields.push({
-        name: '❌ Lines Removed',
-        value: `\`-${stats.deletions}\``,
-        inline: true,
-      });
-    }
-    
-    // // Add total if we have stats (commented out - not useful)
-    // if (stats.total > 0) {
-    //   statsFields.push({
-    //     name: '📊 Total',
-    //     value: `\`${stats.total}\``,
-    //     inline: true,
-    //   });
-    // }
+    // Always show both columns for consistency, even if zero
+    statsFields.push({
+      name: '✅ Lines Added',
+      value: `\`+${stats.additions}\``,
+      inline: true,
+    });
+
+    statsFields.push({
+      name: '❌ Lines Removed',
+      value: `\`-${stats.deletions}\``,
+      inline: true,
+    });
   }
 
   const embed = new EmbedBuilder()
     .setColor(0x2ea043) // Green
     .setTitle(`📝 ${commitCount} new commit${commitCount > 1 ? 's' : ''} to ${branch}`)
     .setAuthor({
-      name: event.repository.full_name,
+      name: `${repoPrivacyIcon(event.repository)} ${event.repository.full_name}`,
       url: event.repository.html_url,
       iconURL: event.repository.owner.avatar_url,
     })
@@ -79,7 +92,7 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
     }
   );
 
-  // Second row: Stats fields
+  // Second row: Stats fields (optional)
   if (statsFields.length > 0) {
     fields.push(...statsFields);
     // Add empty placeholder to align with row above (3 fields per row)
@@ -88,31 +101,24 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
       value: '\u200b',
       inline: true,
     });
-  } else {
-    // If no stats, show commit count
-    fields.push({
-      name: '📊 Commits',
-      value: commitCount.toString(),
-      inline: true,
-    });
   }
 
   embed.addFields(fields)
     .setURL(`${event.repository.html_url}/commits/${branch}`)
-    .setTimestamp(new Date());
+    .setTimestamp(new Date())
+    .setThumbnail(thumbnail);
 
-  // Add commit list if multiple commits
-  if (commitCount > 1 && commitCount <= 10) {
-    const commitList = event.commits
-      .slice(0, 10)
-      .map(c => `[\`${c.id.substring(0, 7)}\`](${c.url}) ${c.message.split('\n')[0]}`)
-      .join('\n');
-    embed.addFields({
-      name: '📋 Commits',
-      value: commitList,
-      inline: false,
-    });
-  }
+  // Always show commit list (up to 10), even for a single-commit push
+  const commitList = event.commits
+    .slice(0, 10)
+    .map(c => `[\`${c.id.substring(0, 7)}\`](${c.url}) ${c.message.split('\n')[0]}`)
+    .join('\n');
+
+  embed.addFields({
+    name: '📋 Commits',
+    value: commitList,
+    inline: false,
+  });
 
   return embed;
 }
@@ -151,7 +157,7 @@ export function formatPullRequestEvent(event: GitHubPullRequestEvent): EmbedBuil
     .setColor(color)
     .setTitle(title)
     .setAuthor({
-      name: event.repository.full_name,
+      name: `${repoPrivacyIcon(event.repository)} ${event.repository.full_name}`,
       url: event.repository.html_url,
       iconURL: event.repository.owner.avatar_url,
     })
@@ -211,7 +217,7 @@ export function formatIssueEvent(event: GitHubIssueEvent): EmbedBuilder {
     .setColor(color)
     .setTitle(title)
     .setAuthor({
-      name: event.repository.full_name,
+      name: `${repoPrivacyIcon(event.repository)} ${event.repository.full_name}`,
       url: event.repository.html_url,
       iconURL: event.repository.owner.avatar_url,
     })
@@ -259,7 +265,7 @@ export function formatReleaseEvent(event: GitHubReleaseEvent): EmbedBuilder {
     .setColor(0xf1e05a) // Yellow/Gold
     .setTitle(`🚀 Release Published: ${release.tag_name}`)
     .setAuthor({
-      name: event.repository.full_name,
+      name: `${repoPrivacyIcon(event.repository)} ${event.repository.full_name}`,
       url: event.repository.html_url,
       iconURL: event.repository.owner.avatar_url,
     })
