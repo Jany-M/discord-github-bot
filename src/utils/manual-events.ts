@@ -204,6 +204,7 @@ export async function postCommit(
           login: repository.owner.login,
           avatar_url: repository.owner.avatar_url || '',
         },
+        private: repository.private || false,
       },
       commits: [
         {
@@ -311,6 +312,7 @@ export async function postPullRequest(
           login: repository.owner.login,
           avatar_url: repository.owner.avatar_url || '',
         },
+        private: repository.private || false,
       },
     };
 
@@ -381,6 +383,7 @@ export async function postIssue(
           login: repository.owner.login,
           avatar_url: repository.owner.avatar_url || '',
         },
+        private: repository.private || false,
       },
     };
 
