@@ -17,6 +17,8 @@ This bot automatically notifies your Discord server about GitHub activity:
 - **Manual event replay** for testing or recovering failed webhooks
 - **Multi-repository support** with channel routing
 
+![Alt text](https://i.postimg.cc/QdCXmfVn/preview.png "API Preview")
+
 ## Prerequisites
 
 - **Discord server** with admin access

@@ -13,5 +13,5 @@ config.json
 *.swp
 *.swo
 *~
-
 *.url
+*.png
