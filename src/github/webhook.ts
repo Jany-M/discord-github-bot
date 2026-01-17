@@ -66,8 +66,14 @@ async function handlePullRequestEvent(payload: GitHubPullRequestEvent): Promise<
 
     logger.debug(`Received pull_request event for ${repoName} (action: ${action})`);
 
-    // Only handle opened, closed, and synchronize actions
-    if (!['opened', 'closed', 'synchronize'].includes(action)) {
+    // Ignore synchronize to avoid duplicate notifications; push events cover new commits
+    if (action === 'synchronize') {
+      logger.debug('Skipping pull_request synchronize action to prevent duplicate commit notices');
+      return;
+    }
+
+    // Only handle opened and closed actions
+    if (!['opened', 'closed'].includes(action)) {
       logger.debug(`Skipping pull_request event with action: ${action}`);
       return;
     }
