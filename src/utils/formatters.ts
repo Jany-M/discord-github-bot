@@ -66,8 +66,9 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
       name: `${repoPrivacyIcon(event.repository)} ${event.repository.full_name}`,
       url: event.repository.html_url,
       iconURL: event.repository.owner.avatar_url,
-    })
-    .setDescription(`**Latest commit:** [${latestCommit.id.substring(0, 7)}](${latestCommit.url}) ${latestCommit.message.split('\n')[0]}`);
+    });
+    // Removed duplicate commit description - already shown in commit list below
+    // .setDescription(`**Latest commit:** [${latestCommit.id.substring(0, 7)}](${latestCommit.url}) ${latestCommit.message.split('\n')[0]}`);
 
   // Add fields: Row 1 (Author, Branch, Empty), Row 2 (Added, Removed, Total)
   // Discord shows exactly 3 inline fields per row
