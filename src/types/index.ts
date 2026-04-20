@@ -91,6 +91,9 @@ export interface GitHubPullRequestEvent {
       ref: string;
       sha: string;
     };
+    additions?: number;
+    deletions?: number;
+    changed_files?: number;
   };
   repository: {
     name: string;

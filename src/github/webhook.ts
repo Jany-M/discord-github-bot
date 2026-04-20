@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { sendToDiscord } from '../discord/bot';
 import { getChannelForRepository, shouldHandleEvent } from '../config/config';
+import { getAuthenticatedOctokit } from './oauth';
 import {
   formatPushEvent,
   formatPullRequestEvent,
@@ -16,6 +17,69 @@ import {
 import { logger } from '../utils/logger';
 
 let webhookSecret: string | null = null;
+
+async function enrichPushCommitStats(payload: GitHubPushEvent): Promise<GitHubPushEvent> {
+  try {
+    const octokit = await getAuthenticatedOctokit();
+    const [owner, repo] = payload.repository.full_name.split('/');
+
+    if (!owner || !repo) {
+      return payload;
+    }
+
+    const commitsWithStats = await Promise.all(
+      payload.commits.map(async (commit) => {
+        if (commit.stats) {
+          return commit;
+        }
+
+        try {
+          const { data: commitData } = await octokit.rest.repos.getCommit({
+            owner,
+            repo,
+            ref: commit.id,
+          });
+
+          const stats = commitData.stats
+            ? {
+                additions: commitData.stats.additions || 0,
+                deletions: commitData.stats.deletions || 0,
+                total: commitData.stats.total || 0,
+              }
+            : undefined;
+
+          return {
+            ...commit,
+            stats,
+          };
+        } catch (error) {
+          logger.debug(`Could not fetch stats for commit ${commit.id.substring(0, 7)} in ${payload.repository.full_name}`);
+          return commit;
+        }
+      })
+    );
+
+    let headCommit = payload.head_commit;
+    if (!headCommit?.stats) {
+      const matchingHead = commitsWithStats.find(c => c.id === payload.head_commit?.id);
+      if (matchingHead?.stats) {
+        headCommit = {
+          ...headCommit,
+          stats: matchingHead.stats,
+        };
+      }
+    }
+
+    return {
+      ...payload,
+      commits: commitsWithStats,
+      head_commit: headCommit,
+    };
+  } catch (error) {
+    logger.debug('Skipping push stats enrichment (GitHub token unavailable or request failed)');
+    return payload;
+  }
+}
 
 /**
  * Initializes the GitHub webhooks handler
@@ -46,8 +110,10 @@ async function handlePushEvent(payload: GitHubPushEvent): Promise<void> {
       return;
     }
 
+    const enrichedPayload = await enrichPushCommitStats(payload);
+
     const channelId = getChannelForRepository(repoName);
-    const embed = formatPushEvent(payload);
+    const embed = formatPushEvent(enrichedPayload);
 
     await sendToDiscord(channelId, { embeds: [embed] });
     logger.info(`Push event notification sent for ${repoName}`);

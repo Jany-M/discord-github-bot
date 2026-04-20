@@ -327,6 +327,9 @@ export async function postPullRequest(
           ref: pr.base.ref,
           sha: pr.base.sha,
         },
+        additions: pr.additions,
+        deletions: pr.deletions,
+        changed_files: pr.changed_files,
       },
       repository: {
         name: repository.name,

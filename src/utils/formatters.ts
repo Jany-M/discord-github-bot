@@ -133,6 +133,8 @@ export function formatPullRequestEvent(event: GitHubPullRequestEvent): EmbedBuil
   const pr = event.pull_request;
   const action = event.action;
   const isMerged = pr.merged && action === 'closed';
+  const additions = pr.additions ?? 0;
+  const deletions = pr.deletions ?? 0;
 
   let color: number;
   let title: string;
@@ -179,6 +181,21 @@ export function formatPullRequestEvent(event: GitHubPullRequestEvent): EmbedBuil
       {
         name: '🔗 Link',
         value: `[View on GitHub](${pr.html_url})`,
+        inline: true,
+      },
+      {
+        name: '✅ Lines Added',
+        value: `\`+${additions}\``,
+        inline: true,
+      },
+      {
+        name: '❌ Lines Removed',
+        value: `\`-${deletions}\``,
+        inline: true,
+      },
+      {
+        name: '\u200b',
+        value: '\u200b',
         inline: true,
       }
     )
