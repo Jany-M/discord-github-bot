@@ -20,6 +20,11 @@ export type GitHubEventType = 'push' | 'pull_request' | 'issues' | 'release';
 
 export interface GitHubPushEvent {
   ref: string;
+  before?: string;
+  after?: string;
+  created?: boolean;
+  deleted?: boolean;
+  forced?: boolean;
   repository: {
     name: string;
     full_name: string;
@@ -59,7 +64,7 @@ export interface GitHubPushEvent {
       deletions: number;
       total: number;
     };
-  };
+  } | null;
   pusher: {
     name: string;
   };

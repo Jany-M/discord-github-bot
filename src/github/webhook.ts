@@ -18,6 +18,39 @@ import { logger } from '../utils/logger';
 
 let webhookSecret: string | null = null;
 
+function normalizePushPayload(payload: GitHubPushEvent): GitHubPushEvent | null {
+  const repoName = payload.repository?.full_name || 'unknown';
+  const branch = payload.ref.replace('refs/heads/', '');
+  const commits = Array.isArray(payload.commits) ? payload.commits.filter(Boolean) : [];
+
+  if (commits.length > 0) {
+    return {
+      ...payload,
+      commits,
+    };
+  }
+
+  if (payload.head_commit) {
+    logger.info(
+      `Normalizing push event for ${repoName} on ${branch} (payload had no commits array, using head commit ${payload.head_commit.id.substring(0, 7)})`
+    );
+
+    return {
+      ...payload,
+      commits: [payload.head_commit],
+    };
+  }
+
+  const reason = payload.deleted
+    ? 'branch deletion'
+    : payload.created
+      ? 'branch creation without new commit data'
+      : 'no commit data';
+
+  logger.info(`Skipping push event for ${repoName} on ${branch} (${reason})`);
+  return null;
+}
+
 async function enrichPushCommitStats(payload: GitHubPushEvent): Promise<GitHubPushEvent> {
   try {
     const octokit = await getAuthenticatedOctokit();
@@ -62,7 +95,7 @@ async function enrichPushCommitStats(payload: GitHubPushEvent): Promise<GitHubPu
     let headCommit = payload.head_commit;
     if (!headCommit?.stats) {
       const matchingHead = commitsWithStats.find(c => c.id === payload.head_commit?.id);
-      if (matchingHead?.stats) {
+      if (headCommit && matchingHead?.stats) {
         headCommit = {
           ...headCommit,
           stats: matchingHead.stats,
@@ -97,20 +130,19 @@ async function handlePushEvent(payload: GitHubPushEvent): Promise<void> {
     const repoName = payload.repository.full_name;
     const branch = payload.ref.replace('refs/heads/', '');
 
-    // Skip empty pushes (e.g., branch creation/deletion without commits)
-    if (!payload.commits || payload.commits.length === 0) {
-      logger.debug(`Skipping push event for ${repoName} on ${branch} (0 commits in payload)`);
+    const normalizedPayload = normalizePushPayload(payload);
+    if (!normalizedPayload) {
       return;
     }
 
     logger.debug(`Received push event for ${repoName} on branch ${branch}`);
 
     if (!shouldHandleEvent(repoName, 'push', branch)) {
-      logger.debug(`Skipping push event for ${repoName} on ${branch} (not configured)`);
+      logger.info(`Skipping push event for ${repoName} on ${branch} (branch/event not configured)`);
       return;
     }
 
-    const enrichedPayload = await enrichPushCommitStats(payload);
+    const enrichedPayload = await enrichPushCommitStats(normalizedPayload);
 
     const channelId = getChannelForRepository(repoName);
     const embed = formatPushEvent(enrichedPayload);

@@ -39,8 +39,8 @@ function getPushStats(commits: GitHubPushEvent['commits'], headCommit: GitHubPus
  */
 export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
   const branch = event.ref.replace('refs/heads/', '');
+  const latestCommit = event.head_commit || event.commits[event.commits.length - 1];
   const commitCount = event.commits.length;
-  const latestCommit = event.head_commit;
   const stats = getPushStats(event.commits, latestCommit);
   const thumbnail = event.sender?.avatar_url || event.repository.owner.avatar_url;
 
@@ -80,7 +80,7 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
   fields.push(
     {
       name: '👤 Author',
-      value: latestCommit.author.name || latestCommit.author.username,
+      value: latestCommit?.author.name || latestCommit?.author.username || event.pusher.name,
       inline: true,
     },
     {
