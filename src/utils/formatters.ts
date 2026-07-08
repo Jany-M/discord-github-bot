@@ -6,6 +6,32 @@ import {
   GitHubReleaseEvent,
 } from '../types';
 
+const DISCORD_FIELD_VALUE_MAX = 1024;
+
+function truncateForField(value: string, max = DISCORD_FIELD_VALUE_MAX): string {
+  if (value.length <= max) {
+    return value;
+  }
+
+  // Reserve 3 chars for an ellipsis marker.
+  return `${value.slice(0, Math.max(0, max - 3))}...`;
+}
+
+function buildCommitListField(commits: GitHubPushEvent['commits']): string {
+  const lines = commits.slice(0, 10).map(commit => {
+    const firstLine = (commit.message || '').split('\n')[0] || '(no message)';
+    const shortSha = commit.id.substring(0, 7);
+    // Keep each line bounded so one oversized subject cannot break the whole field.
+    return truncateForField(`[\`${shortSha}\`](${commit.url}) ${firstLine}`, 220);
+  });
+
+  if (lines.length === 0) {
+    return 'No commit details were included in this push payload.';
+  }
+
+  return truncateForField(lines.join('\n'));
+}
+
 function repoPrivacyIcon(repo: { private: boolean }): string {
   // GitHub webhook payloads always include the 'private' boolean field
   // true = private repository (🔒), false = public repository (🔓)
@@ -112,10 +138,7 @@ export function formatPushEvent(event: GitHubPushEvent): EmbedBuilder {
     .setThumbnail(thumbnail);
 
   // Always show commit list (up to 10), even for a single-commit push
-  const commitList = event.commits
-    .slice(0, 10)
-    .map(c => `[\`${c.id.substring(0, 7)}\`](${c.url}) ${c.message.split('\n')[0]}`)
-    .join('\n');
+  const commitList = buildCommitListField(event.commits);
 
   embed.addFields({
     name: '📋 Commits',

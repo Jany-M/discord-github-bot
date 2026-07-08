@@ -5,6 +5,13 @@ import { logger } from '../utils/logger';
 
 let cachedConfig: Config | null = null;
 const CONFIG_PATH = path.join(process.cwd(), 'config.json');
+const WEBHOOK_TRACE = process.env.WEBHOOK_TRACE === 'true';
+
+function traceConfig(message: string, metadata?: Record<string, unknown>): void {
+  if (WEBHOOK_TRACE) {
+    logger.info(message, metadata || {});
+  }
+}
 
 /**
  * Loads and validates the configuration file
@@ -30,6 +37,16 @@ export function loadConfig(): Config {
 
     cachedConfig = config;
     logger.info('Configuration loaded successfully');
+    traceConfig('Configuration summary', {
+      repositories: config.repositories.map(repo => ({
+        name: repo.name,
+        events: repo.events,
+        branches: repo.branches,
+        excludeBranches: repo.excludeBranches || [],
+        hasChannelOverride: !!repo.channel,
+      })),
+      hasRepoChannelMap: !!config.discord.channels.repositories,
+    });
     return config;
   } catch (error) {
     if (error instanceof SyntaxError) {
@@ -121,11 +138,23 @@ export function shouldHandleEvent(
   const repoConfig = cfg.repositories.find(r => r.name === repoName);
 
   if (!repoConfig) {
+    traceConfig('Event routing skipped: repository not configured', {
+      repoName,
+      eventType,
+      branch: branch || null,
+      configuredRepositories: cfg.repositories.map(r => r.name),
+    });
     return false;
   }
 
   // Check if event type is configured
   if (!repoConfig.events.includes(eventType as any)) {
+    traceConfig('Event routing skipped: event type not enabled for repository', {
+      repoName,
+      eventType,
+      enabledEvents: repoConfig.events,
+      branch: branch || null,
+    });
     return false;
   }
 
@@ -145,6 +174,12 @@ export function shouldHandleEvent(
       });
 
       if (isExcluded) {
+        traceConfig('Event routing skipped: branch is excluded', {
+          repoName,
+          eventType,
+          branch,
+          excludeBranches: repoConfig.excludeBranches,
+        });
         return false;
       }
     }
@@ -161,9 +196,21 @@ export function shouldHandleEvent(
     });
 
     if (!branchMatches) {
+      traceConfig('Event routing skipped: branch does not match branch filters', {
+        repoName,
+        eventType,
+        branch,
+        branches: repoConfig.branches,
+      });
       return false;
     }
   }
+
+  traceConfig('Event routing matched', {
+    repoName,
+    eventType,
+    branch: branch || null,
+  });
 
   return true;
 }
