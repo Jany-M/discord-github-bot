@@ -17,6 +17,29 @@ import {
 import { logger } from '../utils/logger';
 
 let webhookSecret: string | null = null;
+const WEBHOOK_TRACE = process.env.WEBHOOK_TRACE === 'true';
+
+function traceLog(message: string, metadata?: Record<string, unknown>): void {
+  if (WEBHOOK_TRACE) {
+    logger.info(message, metadata || {});
+  }
+}
+
+function summarizePushPayload(payload: GitHubPushEvent): Record<string, unknown> {
+  const branch = payload.ref?.replace('refs/heads/', '') || 'unknown';
+  const commits = Array.isArray(payload.commits) ? payload.commits : [];
+  return {
+    repo: payload.repository?.full_name || 'unknown',
+    branch,
+    commitsCount: commits.length,
+    headCommit: payload.head_commit?.id?.substring(0, 7) || null,
+    after: payload.after?.substring(0, 7) || null,
+    before: payload.before?.substring(0, 7) || null,
+    created: payload.created === true,
+    deleted: payload.deleted === true,
+    forced: payload.forced === true,
+  };
+}
 
 function normalizePushPayload(payload: GitHubPushEvent): GitHubPushEvent | null {
   const repoName = payload.repository?.full_name || 'unknown';
@@ -130,14 +153,24 @@ async function handlePushEvent(payload: GitHubPushEvent): Promise<void> {
     const repoName = payload.repository.full_name;
     const branch = payload.ref.replace('refs/heads/', '');
 
+    logger.info('Push webhook received', summarizePushPayload(payload));
+
     const normalizedPayload = normalizePushPayload(payload);
     if (!normalizedPayload) {
       return;
     }
 
-    logger.debug(`Received push event for ${repoName} on branch ${branch}`);
+    traceLog('Push webhook normalized payload', {
+      repo: repoName,
+      branch,
+      normalizedCommitsCount: normalizedPayload.commits.length,
+      normalizedHeadCommit: normalizedPayload.head_commit?.id?.substring(0, 7) || null,
+    });
 
-    if (!shouldHandleEvent(repoName, 'push', branch)) {
+    const shouldHandlePush = shouldHandleEvent(repoName, 'push', branch);
+    logger.info(`Push webhook routing decision for ${repoName} on ${branch}: ${shouldHandlePush ? 'handled' : 'skipped'}`);
+
+    if (!shouldHandlePush) {
       logger.info(`Skipping push event for ${repoName} on ${branch} (branch/event not configured)`);
       return;
     }
@@ -147,8 +180,12 @@ async function handlePushEvent(payload: GitHubPushEvent): Promise<void> {
     const channelId = getChannelForRepository(repoName);
     const embed = formatPushEvent(enrichedPayload);
 
+    logger.info(`Sending push notification to Discord for ${repoName} on ${branch}`, {
+      channelId,
+      commitsCount: enrichedPayload.commits.length,
+    });
     await sendToDiscord(channelId, { embeds: [embed] });
-    logger.info(`Push event notification sent for ${repoName}`);
+    logger.info(`Push event notification sent for ${repoName} on ${branch}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`Error handling push event for ${payload.repository?.full_name || 'unknown'}:`, {
@@ -294,6 +331,10 @@ function verifySignature(payload: string, signature: string, secret: string): bo
     .update(payload)
     .digest('hex');
 
+  if (receivedSignature.length !== expectedSignature.length) {
+    return false;
+  }
+
   // Use timing-safe comparison to prevent timing attacks
   return crypto.timingSafeEqual(
     Buffer.from(receivedSignature, 'hex'),
@@ -321,6 +362,11 @@ export async function handleWebhook(
     throw new Error('Invalid webhook signature');
   }
 
+  logger.info(`Webhook signature verified: ${name} (${id})`, {
+    repo: payload?.repository?.full_name || 'unknown',
+    action: payload?.action || null,
+  });
+
   // Route to appropriate handler based on event type
   try {
     switch (name) {
@@ -337,10 +383,14 @@ export async function handleWebhook(
         await handleReleaseEvent(payload as GitHubReleaseEvent);
         break;
       default:
-        logger.debug(`Unhandled webhook event type: ${name}`);
+        logger.info(`Unhandled webhook event type: ${name}`);
     }
   } catch (error) {
-    logger.error(`Error handling webhook event ${name}:`, error);
+    logger.error(`Error handling webhook event ${name} (${id}):`, {
+      repo: payload?.repository?.full_name || 'unknown',
+      action: payload?.action || null,
+      error,
+    });
     throw error;
   }
 }

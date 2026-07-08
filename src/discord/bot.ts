@@ -76,6 +76,7 @@ export async function sendToDiscord(
     }
 
     const textChannel = channel as TextChannel;
+    const isEmbedMessage = typeof content !== 'string' && Array.isArray(content.embeds) && content.embeds.length > 0;
     
     if (typeof content === 'string') {
       await textChannel.send(content);
@@ -83,7 +84,10 @@ export async function sendToDiscord(
       await textChannel.send(content);
     }
 
-    logger.debug(`Message sent to Discord channel ${channelId}`);
+    logger.info(`Message sent to Discord channel ${channelId}`, {
+      messageType: isEmbedMessage ? 'embed' : 'text',
+      channelName: textChannel.name,
+    });
   } catch (error) {
     logger.error(`Failed to send message to Discord channel ${channelId}:`, error);
     throw error;

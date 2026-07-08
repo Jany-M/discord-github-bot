@@ -34,7 +34,10 @@ app.post('/webhook/github', express.raw({
       return res.status(400).json({ error: 'Missing required headers' });
     }
 
-    logger.debug(`Received webhook: ${event} (${deliveryId})`);
+    logger.info(`Received webhook: ${event} (${deliveryId})`, {
+      contentLength: req.headers['content-length'] || null,
+      userAgent: req.headers['user-agent'] || null,
+    });
 
     // Get raw body as string for signature verification
     const rawBody = (req.body as Buffer).toString('utf8');
@@ -43,6 +46,11 @@ app.post('/webhook/github', express.raw({
 
     // Handle the webhook (pass raw body for signature verification)
     await handleWebhook(deliveryId, event, payload, signature, rawBody);
+
+    logger.info(`Webhook processed successfully: ${event} (${deliveryId})`, {
+      repo: payload?.repository?.full_name || 'unknown',
+      action: payload?.action || null,
+    });
 
     res.status(200).json({ received: true });
   } catch (error) {
