@@ -16,3 +16,4 @@ config.json
 *.url
 *.png
 discord-github-bot.env
+config_bk.json
